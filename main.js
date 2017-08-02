@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const session = require('express-session')
 const expressValidator = require('express-validator')
+const cookieParser = require('cookie-parser');
 const app = express();
 // pkgs
 
@@ -19,6 +20,7 @@ app.set('view engine', 'handlebars');
 app.use(express.static('public'));
 
 // session
+app.use(cookieParser());
 app.use(session({
   secret: 'two',
   resave: false,
@@ -64,23 +66,31 @@ app.use((req, res, next) => {
 });
 
 
-// configure the webroot
-app.get('/', function(req, res) {
-  if (!req.session.someone === 0) {
-    res.redirect('login')
+app.get('/', function(req, res){
 
- } else {
-    res.render('home', {
-      username: req.session.someone
+if (!req.session.someone) {
+    res.render('home')
 
-    });
-  }
+} else if (req.session.someone) {
+  res.render('loggedin', {
+  username: req.session.someone});
+
+} else  {
+  res.render('/')
+
+}
 });
 
+
 app.get('/login', function(req, res) {
+  req.session.destroy();
   res.render('login');
 
 });
+
+app.get('/loggedin', function(req, res) {
+     res.render('loggedin')});
+
 
 
 app.post('/enter', function(req, res) {
@@ -104,7 +114,7 @@ req.checkBody('password', 'Password is required').notEmpty();
   let users = data.filter(function(verify) {
   return verify.username === req.body.username;
 
-    });
+});
 
 // if user is not found
    if (users.length === 0) {
@@ -114,12 +124,12 @@ req.checkBody('password', 'Password is required').notEmpty();
    });
   return;
 
-    }
+}
 
     let user = users[0];
-// if the password is a match, direct back to homepage, ohterwise disple "need help?"
+// if the password is a match, direct back to homepage, ohterwise display "need help?"
     if (user.password === req.body.password) {
-      req.session.someone = user.username;
+      req.session.someone = user.password;
       res.redirect("/");
 
   } else {
